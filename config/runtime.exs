@@ -28,6 +28,18 @@ if config_env() == :prod do
       For example: ecto://USER:PASS@HOST/DATABASE
       """
 
+  meilisearch_url =
+    System.get_env("MEILISEARCH_URL") ||
+      raise """
+      environment variable MEILISEARCH_URL is missing.
+      For example: http://meilisearch-service:7700
+      """
+
+  config :core,
+    meilisearch_url: meilisearch_url,
+    admin_username: System.fetch_env!("ADMIN_USERNAME"),
+    admin_password: System.fetch_env!("ADMIN_PASSWORD")
+
   maybe_ipv6 = if System.get_env("ECTO_IPV6"), do: [:inet6], else: []
 
   config :core, Core.Repo,

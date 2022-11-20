@@ -1,0 +1,13 @@
+diff --git a/src/libexpr/primops.cc b/src/libexpr/primops.cc
+index bc253d0a3..e6c348d99 100644
+--- a/src/libexpr/primops.cc
++++ b/src/libexpr/primops.cc
+@@ -867,7 +867,7 @@ static void prim_tryEval(EvalState & state, const PosIdx pos, Value * * args, Va
+         state.forceValue(*args[0], pos);
+         attrs.insert(state.sValue, args[0]);
+         attrs.alloc("success").mkBool(true);
+-    } catch (AssertionError & e) {
++    } catch (EvalError & e) {
+         attrs.alloc(state.sValue).mkBool(false);
+         attrs.alloc("success").mkBool(false);
+     }

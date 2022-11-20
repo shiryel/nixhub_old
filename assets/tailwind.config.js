@@ -4,6 +4,7 @@
 const plugin = require("tailwindcss/plugin")
 
 module.exports = {
+  darkMode: 'class',
   content: [
     "./js/**/*.js",
     "../lib/*_web.ex",
@@ -12,7 +13,10 @@ module.exports = {
   theme: {
     extend: {
       colors: {
-        brand: "#FD4F00",
+        version: "#FD4F00",
+      },
+      fontFamily: {
+        'code': ["Monaco","Menlo","Consolas","Courier New","monospace"]
       }
     },
   },

@@ -3,3 +3,23 @@
 @import "tailwindcss/utilities";
 
 /* This file is for your main application CSS */
+
+@layer components {
+  .code {
+    @apply font-code px-[0.2em] py-[0.05em] border-[0.05em] rounded-sm;
+    @apply bg-slate-100 border-slate-300;
+    @apply dark:bg-slate-800 dark:border-slate-900;
+  }
+
+  .description code {
+    @apply code text-sm text-orange-600 dark:text-orange-500;
+  }
+
+  .description ul {
+    @apply list-disc;
+  }
+
+  .description li {
+    @apply ml-4 mb-2;
+  }
+}

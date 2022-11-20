@@ -6,4 +6,8 @@ defmodule CoreWeb.PageController do
     # so skip the default app layout.
     render(conn, :home, layout: false)
   end
+
+  # def search(conn, _params) do
+  #  render(conn, :search, layout: {CoreWeb.Layouts, "app"})
+  # end
 end

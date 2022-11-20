@@ -1,5 +1,8 @@
 import Config
 
+config :core,
+  meilisearch_url: System.get_env("MEILISEARCH_URL", "http://localhost:7700")
+
 # Configure your database
 config :core, Core.Repo,
   username: "postgres",
@@ -58,7 +61,7 @@ config :core, CoreWeb.Endpoint,
     patterns: [
       ~r"priv/static/.*(js|css|png|jpeg|jpg|gif|svg)$",
       ~r"priv/gettext/.*(po)$",
-      ~r"lib/<%= @web_app_name %>/(controllers|live|components)/.*(ex|heex)$"
+      ~r"lib/core_web/(controllers|live|components)/.*(ex|heex)$"
     ]
   ]
 
