@@ -6,12 +6,23 @@
     phx-submit="search"
     class="sticky top-0 z-10 p-2 bg-white dark:bg-slate-900/75"
   >
-    <.input
-      field={{f, :search_input}}
-      value={@search}
-      class="dark:bg-slate-700 grow"
-      phx-debounce="150"
-    />
+    <div class="flex">
+      <div class="w-full">
+        <.input
+          field={{f, :search_input}}
+          value={@search}
+          class="dark:bg-slate-700"
+          phx-debounce="150"
+        />
+      </div>
+      <div class="
+        flex flex-col whitespace-nowrap ml-1 self-center w-16
+        text-right text-xs text-blue-600/70 dark:text-blue-300/70
+      ">
+        <p><%= @results_hits %> hits</p>
+        <p><%= @results_time %> ms</p>
+      </div>
+    </div>
 
     <div class="flex gap-2 justify-between">
       <div class="flex gap-2 py-2">
@@ -43,47 +54,51 @@
         />
       </div>
     </div>
-    <div></div>
   </.simple_form>
 
-  <div id="infinite-scroll" phx-hook="InfiniteScroll" phx-update="append" data-page={@page}>
-    <.table id="results" rows={@results}>
-      <:col :let={r}>
-        <!-- PACKAGE -->
-        <div :if={r.__type__ == "package"}>
-          <.package_line package={r} />
-          <div id={r.id} class="hidden">
-            <.home_and_source package={r} />
-            <.package_long_description description={r.long_description} />
-            <div class="flex justify-around py-2">
-              <.licenses package={r} />
-              <.maintainers package={r} />
-              <.platforms package={r} />
-            </div>
+  <div id={@results_id} phx-hook="InfiniteScroll" phx-update="append" data-page={@page}>
+    <div
+      :for={r <- @results}
+      id={"infinite-scroll__#{r.id}"}
+      class="
+        hover:bg-zinc-50 dark:hover:bg-slate-800
+        rounded-lg
+        text-zinc-700 dark:text-zinc-200
+      "
+    >
+      <!-- PACKAGE -->
+      <div :if={r.__type__ == "package"}>
+        <.package_line package={r} />
+        <div id={r.id} class="hidden">
+          <.home_and_source package={r} />
+          <.package_long_description description={r.long_description} />
+          <div class="flex justify-around py-2">
+            <.maintainers package={r} />
+            <.platforms package={r} />
           </div>
         </div>
-        <!-- NIXOS OPTION -->
-        <div :if={r.__type__ == "nixos_option"}>
-          <.nixos_option_line option={r} />
-          <div id={r.id} class="hidden">
-            <.option_default default={r.default} />
-            <.option_example example={r.example} />
-            <.option_description description={r.description} />
-            <.option_declarations declarations={r.declarations} />
-          </div>
+      </div>
+      <!-- NIXOS OPTION -->
+      <div :if={r.__type__ == "nixos_option"}>
+        <.nixos_option_line option={r} />
+        <div id={r.id} class="hidden pb-2">
+          <.option_default default={r.default} />
+          <.option_example example={r.example} />
+          <.option_description description={r.description} />
+          <.nixos_option_declarations declarations={r.declarations} />
         </div>
-        <!-- HOME MANAGER OPTION -->
-        <div :if={r.__type__ == "home_manager_option"}>
-          <.home_manager_option_line option={r} />
-          <div id={r.id} class="hidden">
-            <.option_default default={r.default} />
-            <.option_example example={r.example} />
-            <.option_description description={r.description} />
-            <.option_declarations declarations={r.declarations} />
-          </div>
+      </div>
+      <!-- HOME MANAGER OPTION -->
+      <div :if={r.__type__ == "home_manager_option"}>
+        <.home_manager_option_line option={r} />
+        <div id={r.id} class="hidden pb-2">
+          <.option_default default={r.default} />
+          <.option_example example={r.example} />
+          <.option_description description={r.description} />
+          <.home_manager_option_declarations declarations={r.declarations} />
         </div>
-      </:col>
-    </.table>
+      </div>
+    </div>
   </div>
 
   <p :if={@page == 20} class="m-4 text-center font-bold text-red-500">

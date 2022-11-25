@@ -221,14 +221,44 @@ defmodule CoreWeb.CoreComponents do
     <button
       type={@type}
       class={[
-        "phx-submit-loading:opacity-75 rounded-lg bg-zinc-900 hover:bg-zinc-700 py-2 px-3",
-        "text-sm leading-6 text-white active:text-white/80",
+        "phx-submit-loading:opacity-75 rounded-lg",
+        "bg-zinc-100 dark:bg-zinc-900 hover:bg-zinc-300 dark:hover:bg-zinc-700",
+        "text-sm leading-6",
         @class
       ]}
       {@rest}
     >
       <%= render_slot(@inner_block) %>
     </button>
+    """
+  end
+
+  @doc """
+  Renders a hyperlink as a button.
+
+  ## Examples
+
+      <.link_button>Send!</.link_button>
+      <.link_button href="https://..." target="_blank" class="ml-2">Send!</.link_button>
+  """
+  attr :class, :string, default: nil
+  attr :rest, :global, include: ~w(href target disabled form name value)
+
+  slot :inner_block, required: true
+
+  def link_button(assigns) do
+    ~H"""
+    <a
+      class={[
+        "phx-submit-loading:opacity-75 rounded-lg",
+        "bg-zinc-100 dark:bg-zinc-900 hover:bg-zinc-300 dark:hover:bg-zinc-700",
+        "text-sm leading-6",
+        @class
+      ]}
+      {@rest}
+    >
+      <%= render_slot(@inner_block) %>
+    </a>
     """
   end
 

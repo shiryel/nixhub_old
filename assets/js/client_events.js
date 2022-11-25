@@ -5,6 +5,13 @@ window.addEventListener("search", (event) => {
   window.scrollTo(0, 0)
 });
 
+/********************
+* Copy to clipboard *
+*********************/
+window.addEventListener("copy_to_clipboard", (event) => {
+  navigator.clipboard.writeText(event.detail);
+});
+
 /*******************************
 * Dark / Light theme selection *
 ********************************/

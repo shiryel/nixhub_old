@@ -11,7 +11,9 @@ defmodule CoreWeb.Endpoint do
     same_site: "Lax"
   ]
 
-  socket "/live", Phoenix.LiveView.Socket, websocket: [connect_info: [session: @session_options]]
+  # https://hexdocs.pm/phoenix/Phoenix.Endpoint.html#socket/3-websocket-configuration
+  socket "/live", Phoenix.LiveView.Socket,
+    websocket: [connect_info: [session: @session_options], compress: true]
 
   # Serve at "/" the static files from "priv/static" directory.
   #

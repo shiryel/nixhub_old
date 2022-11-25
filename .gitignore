@@ -33,5 +33,4 @@ npm-debug.log
 /assets/node_modules/
 
 # Nix generated files
-/eval/params.nix
 /tmp

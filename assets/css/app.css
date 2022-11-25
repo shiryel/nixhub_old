@@ -22,4 +22,9 @@
   .description li {
     @apply ml-4 mb-2;
   }
+
+  .icon {
+    @apply inline-block;
+    @apply text-indigo-400 w-3.5;
+  }
 }
