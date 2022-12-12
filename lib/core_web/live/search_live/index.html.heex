@@ -1,18 +1,70 @@
-<div class="font-normal">
-  <.simple_form
-    :let={f}
-    for={:search_form}
-    phx-change={JS.dispatch("search") |> JS.push("search")}
-    phx-submit="search"
-    class="sticky top-0 z-10 p-2 bg-white dark:bg-slate-900/75"
-  >
+<div class={[
+  "hidden lg:block fixed",
+  "right-auto left-[max(0px,calc(50%-40rem))] top-[calc(50%-10rem)]",
+  "w-[17.5rem] px-8"
+]}>
+  <div class="flex gap-2 flex-col p-3 bg-slate-50 dark:bg-slate-800 rounded-lg">
+    <div phx-window-keydown={JS.dispatch("search") |> JS.push("toggle_options")} phx-key="o" />
+    <.toggle
+      value={@filter.packages?}
+      label="packages"
+      keybind_label="P"
+      event="toggle_packages"
+      key="p"
+    />
+    <.toggle
+      value={@filter.nixos_options?}
+      label="nixos options"
+      keybind_label="O | N"
+      event="toggle_nixos_options"
+      key="n"
+    />
+    <.toggle
+      value={@filter.home_manager_options?}
+      label="HM options"
+      keybind_label="O | H"
+      event="toggle_home_manager_options"
+      key="h"
+    />
+    <.toggle
+      value={@filter.show_collections?}
+      label="show collections"
+      keybind_label="Shift C"
+      event="toggle_show_collections"
+      key="c"
+    />
+  </div>
+</div>
+
+<div class="lg:pl-[13.5rem] font-normal">
+  <div class="sticky top-0 z-10 p-2 bg-white dark:bg-slate-900/75">
     <div class="flex">
       <div class="w-full">
-        <.input
-          field={{f, :search_input}}
+        <input
           value={@search}
-          class="dark:bg-slate-700"
-          phx-debounce="150"
+          class={
+            [
+              "w-full rounded-lg border-zinc-300 py-[7px] px-[11px]",
+              # border
+              "border-zinc-300 dark:border-zinc-800",
+              "focus:border-zinc-400 focus:ring-zinc-800/5",
+              "focus:outline-none focus:ring-4",
+              "phx-no-feedback:border-zinc-300 phx-no-feedback:focus:border-zinc-400 phx-no-feedback:focus:ring-zinc-800/5",
+              # background
+              "bg-slate-200 dark:bg-slate-700",
+              # text
+              "text-zinc-900 dark:text-zinc-100",
+              "sm:text-sm sm:leading-6",
+              # placeholder
+              "placeholder:text-transparent md:placeholder:text-right",
+              "md:placeholder:text-zinc-600 md:dark:placeholder:text-zinc-100"
+            ]
+          }
+          phx-keydown={JS.dispatch("search") |> JS.push("search")}
+          phx-debounce="0"
+          id="search-bar"
+          phx-hook="FocusOnKeydown"
+          placeholder="'S' to search | 'Shift+S' to clean | 'Enter+key' to filter"
         />
       </div>
       <div class="
@@ -23,42 +75,12 @@
         <p><%= @results_time %> ms</p>
       </div>
     </div>
-
-    <div class="flex gap-2 justify-between">
-      <div class="flex gap-2 py-2">
-        <.input
-          field={{f, :get_packages}}
-          type="checkbox"
-          value={@filter.packages?}
-          label="packages"
-        />
-        <.input
-          field={{f, :get_nixos_options}}
-          type="checkbox"
-          value={@filter.nixos_options?}
-          label="nixos options"
-        />
-        <.input
-          field={{f, :get_home_manager_options}}
-          type="checkbox"
-          value={@filter.home_manager_options?}
-          label="home-manager options"
-        />
-      </div>
-      <div class="flex gap-2 py-2">
-        <.input
-          field={{f, :show_collections}}
-          type="checkbox"
-          value={@filter.show_collections?}
-          label="show collections"
-        />
-      </div>
-    </div>
-  </.simple_form>
+  </div>
 
   <div id={@results_id} phx-hook="InfiniteScroll" phx-update="append" data-page={@page}>
     <div
       :for={r <- @results}
+      :if={@results}
       id={"infinite-scroll__#{r.id}"}
       class="
         hover:bg-zinc-50 dark:hover:bg-slate-800

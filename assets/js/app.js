@@ -24,8 +24,9 @@ import {Socket} from "phoenix"
 import {LiveSocket} from "phoenix_live_view"
 import topbar from "../vendor/topbar"
 import InfiniteScroll from "./hooks/infinite_scroll.js"
+import FocusOnKeydown from "./hooks/focus_on_keydown.js"
 
-let hooks = { InfiniteScroll }
+let hooks = { InfiniteScroll, FocusOnKeydown }
 let csrfToken = document.querySelector("meta[name='csrf-token']").getAttribute("content")
 let liveSocket = new LiveSocket("/live", Socket, {params: {_csrf_token: csrfToken}, hooks: hooks})
 

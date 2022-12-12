@@ -277,6 +277,7 @@ defmodule CoreWeb.CoreComponents do
   attr :id, :any
   attr :name, :any
   attr :label, :string, default: nil
+  attr :keybind_label, :string, default: nil
 
   attr :type, :string,
     default: "text",
@@ -313,7 +314,10 @@ defmodule CoreWeb.CoreComponents do
     ~H"""
     <label
       phx-feedback-for={@name}
-      class="flex items-center gap-1 text-sm lg:leading-6 bg-zinc-100 dark:bg-zinc-600 dark:text-zinc-200 rounded-lg px-2"
+      class={[
+        "flex items-center gap-1 px-2 lg:leading-6 text-sm rounded-lg",
+        "text-zinc-900 dark:text-zinc-200"
+      ]}
     >
       <input type="hidden" name={@name} value="false" />
       <input
@@ -322,10 +326,24 @@ defmodule CoreWeb.CoreComponents do
         name={@name}
         value="true"
         checked={@checked}
-        class="rounded border-zinc-600 text-zinc-800 focus:ring-zinc-600"
+        class={
+          [
+            "rounded text-zinc-800 border-transparent",
+            "ring-transparent focus:ring-transparent",
+            # checkbox color
+            "bg-slate-400 checked:bg-slate-400 ",
+            "dark:bg-slate-900 dark:checked:bg-slate-900",
+            # hover checkbox color
+            "hover:bg-slate-500 hover:checked:bg-slate-500",
+            "dark:hover:bg-slate-600 dark:hover:checked:bg-slate-600"
+          ]
+        }
         {@rest}
       />
       <%= @label %>
+      <span class="ml-auto">
+        <%= @keybind_label %>
+      </span>
     </label>
     """
   end
@@ -385,7 +403,8 @@ defmodule CoreWeb.CoreComponents do
           "mt-2 block w-full rounded-lg border-zinc-300 py-[7px] px-[11px]",
           "text-zinc-900 focus:outline-none focus:ring-4 sm:text-sm sm:leading-6",
           "phx-no-feedback:border-zinc-300 phx-no-feedback:focus:border-zinc-400 phx-no-feedback:focus:ring-zinc-800/5",
-          "dark:text-zinc-100 dark:bg-slate-500 dark:border-zinc-800"
+          "dark:placeholder:text-zinc-100 placeholder:text-right placeholder:font-semibold",
+          "dark:text-zinc-100 dark:bg-slate-600 dark:border-zinc-800"
         ]}
         {@rest}
       />

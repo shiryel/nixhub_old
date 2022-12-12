@@ -28,7 +28,7 @@ defmodule CoreWeb.SearchLive.Index do
         }
       })
 
-    {:ok, socket, temporary_assigns: [results: []]}
+    {:ok, socket, temporary_assigns: [results: nil]}
   end
 
   @impl true
@@ -46,32 +46,15 @@ defmodule CoreWeb.SearchLive.Index do
   def handle_event(
         "search",
         %{
-          "search_form" => %{
-            "search_input" => search,
-            "get_nixos_options" => nixos_options,
-            "get_packages" => packages,
-            "get_home_manager_options" => home_manager_options,
-            "show_collections" => show_collections
-          }
+          "key" => _key,
+          "value" => search
         },
-        %{assigns: %{filter: filter}} = socket
+        socket
       ) do
-    packages? = packages == "true"
-    nixos_options? = nixos_options == "true"
-    home_manager_options? = home_manager_options == "true"
-    show_collections? = show_collections == "true"
-
     socket =
       socket
       |> assign(%{
         search: search,
-        filter: %{
-          filter
-          | packages?: packages?,
-            nixos_options?: nixos_options?,
-            home_manager_options?: home_manager_options?,
-            show_collections?: show_collections?
-        },
         page: 0,
         more_pages?: true,
         results_id: Ecto.UUID.generate()
@@ -100,6 +83,87 @@ defmodule CoreWeb.SearchLive.Index do
 
   def handle_event("load_next", %{}, socket) do
     {:noreply, socket}
+  end
+
+  #
+  # Toggles
+  #
+
+  def handle_event("toggle_packages", %{"key" => "p"}, %{assigns: %{filter: filter}} = socket) do
+    socket =
+      socket
+      |> assign(%{filter: %{filter | packages?: not filter.packages?}})
+      |> assign_results_from_start()
+
+    {:noreply, socket}
+  end
+
+  def handle_event(
+        "toggle_nixos_options",
+        %{"key" => "n"},
+        %{assigns: %{filter: filter}} = socket
+      ) do
+    socket =
+      socket
+      |> assign(%{filter: %{filter | nixos_options?: not filter.nixos_options?}})
+      |> assign_results_from_start()
+
+    {:noreply, socket}
+  end
+
+  def handle_event(
+        "toggle_home_manager_options",
+        %{"key" => "h"},
+        %{assigns: %{filter: filter}} = socket
+      ) do
+    socket =
+      socket
+      |> assign(%{filter: %{filter | home_manager_options?: not filter.home_manager_options?}})
+      |> assign_results_from_start()
+
+    {:noreply, socket}
+  end
+
+  def handle_event(
+        "toggle_show_collections",
+        %{"key" => "C"},
+        %{assigns: %{filter: filter}} = socket
+      ) do
+    socket =
+      socket
+      |> assign(%{filter: %{filter | show_collections?: not filter.show_collections?}})
+      |> assign_results_from_start()
+
+    {:noreply, socket}
+  end
+
+  def handle_event("toggle_options", %{"key" => "o"}, %{assigns: %{filter: filter}} = socket) do
+    socket =
+      socket
+      |> assign(%{
+        filter: %{
+          filter
+          | nixos_options?: not filter.nixos_options?,
+            home_manager_options?: not filter.home_manager_options?
+        }
+      })
+      |> assign_results_from_start()
+
+    {:noreply, socket}
+  end
+
+  def handle_event("toggle_" <> _, _, socket) do
+    {:noreply, socket}
+  end
+
+  defp assign_results_from_start(socket) do
+    socket
+    |> assign(%{
+      page: 0,
+      more_pages?: true,
+      results_id: Ecto.UUID.generate()
+    })
+    |> assign_results()
   end
 
   defp assign_results(
@@ -186,6 +250,48 @@ defmodule CoreWeb.SearchLive.Index do
     """
   end
 
+  attr :value, :any
+  attr :label, :string
+  attr :event, :string
+  attr :key, :string
+  attr :keybind_label, :string
+  attr :rest, :global, include: ~w(autocomplete disabled form max maxlength min minlength
+                                   pattern placeholder readonly required size step)
+
+  defp toggle(assigns) do
+    ~H"""
+    <label class={[
+      "flex items-center gap-1 px-2 lg:leading-6 text-sm rounded-lg",
+      "text-zinc-900 dark:text-zinc-200"
+    ]}>
+      <input
+        type="checkbox"
+        checked={@value}
+        class={
+          [
+            "rounded text-zinc-800 border-transparent",
+            "ring-transparent focus:ring-transparent",
+            # checkbox color
+            "bg-slate-400 checked:bg-slate-400 ",
+            "dark:bg-slate-900 dark:checked:bg-slate-900",
+            # hover checkbox color
+            "hover:bg-slate-500 hover:checked:bg-slate-500",
+            "dark:hover:bg-slate-600 dark:hover:checked:bg-slate-600"
+          ]
+        }
+        phx-click={JS.dispatch("search") |> JS.push(@event, value: %{key: @key})}
+        phx-key={@key}
+        phx-window-keydown={JS.dispatch("search") |> JS.push(@event)}
+        {@rest}
+      />
+      <%= @label %>
+      <span class="ml-auto">
+        <%= @keybind_label %>
+      </span>
+    </label>
+    """
+  end
+
   #
   # Packages
   #
@@ -198,8 +304,8 @@ defmodule CoreWeb.SearchLive.Index do
       version={@package.version}
       description={@package.description}
     >
-      <Heroicons.archive_box class="w-[1rem] self-center mx-1" />
-      <div class="flex shrink px-2 rounded-lg dark:text-zinc-100 bg-blue-100 dark:bg-blue-900 text-base font-medium">
+      <Heroicons.archive_box mini class="w-[1rem] self-center mx-1 text-blue-700 dark:text-blue-600" />
+      <div class="flex shrink text-base font-bold">
         <p><%= @package.name %></p>
       </div>
       <span :if={@package.unfree} class="ml-2 px-2 rounded-lg bg-red-100 dark:bg-red-700">
@@ -326,9 +432,12 @@ defmodule CoreWeb.SearchLive.Index do
   defp nixos_option_line(assigns) do
     ~H"""
     <.line_toggle id={@option.id} name={@option.name} version={@option.type}>
-      <Heroicons.cog_6_tooth class="w-[1rem] self-center mx-1" />
-      <div class="flex shrink px-2 rounded-lg bg-green-100 dark:bg-green-900">
-        <p class="text-base font-medium"><%= @option.name %></p>
+      <Heroicons.cog_6_tooth
+        mini
+        class="w-[1rem] self-center mx-1 text-green-700 dark:text-green-600"
+      />
+      <div class="flex shrink">
+        <p class="text-base font-bold"><%= @option.name %></p>
       </div>
     </.line_toggle>
     """
@@ -337,9 +446,9 @@ defmodule CoreWeb.SearchLive.Index do
   defp home_manager_option_line(assigns) do
     ~H"""
     <.line_toggle id={@option.id} name={@option.name} version={@option.type}>
-      <Heroicons.home class="w-[1rem] self-center mx-1" />
-      <div class="flex shrink px-2 rounded-lg bg-purple-100 dark:bg-purple-900">
-        <p class="text-base font-medium"><%= @option.name %></p>
+      <Heroicons.home mini class="w-[1rem] self-center mx-1 text-purple-600 dark:text-purple-500" />
+      <div class="flex shrink">
+        <p class="text-base font-bold"><%= @option.name %></p>
       </div>
     </.line_toggle>
     """
