@@ -20,6 +20,12 @@ config :core, CoreWeb.Endpoint,
   pubsub_server: Core.PubSub,
   live_view: [signing_salt: "8rOO3fCS"]
 
+config :core, Core.Scheduler,
+  timeout: :infinity,
+  jobs: [
+    {"0 5 * * *", {Core.Nix, :load_all, []}}
+  ]
+
 # Configures the mailer
 #
 # By default it uses the "Local" adapter which stores the emails

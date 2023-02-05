@@ -2,27 +2,28 @@
   description = "Nixpkgs to JSON";
 
   inputs = {
-    nixpkgs_stable.url = "github:NixOS/nixpkgs/nixos-22.05";
+    nixpkgs_stable.url = "github:NixOS/nixpkgs/nixos-22.11";
     nixpkgs_unstable.url = "github:NixOS/nixpkgs/nixos-unstable";
-    home-manager.url = "github:nix-community/home-manager";
     flake-utils.url = "github:numtide/flake-utils/v1.0.0";
   };
 
-  outputs = { self, nixpkgs_stable, nixpkgs_unstable, home-manager, flake-utils }:
+  outputs = { self, nixpkgs_stable, nixpkgs_unstable, flake-utils }:
     with builtins;
     with nixpkgs_stable.lib;
     let
       params = import ./params.nix;
 
-      pkgs = import nixpkgs_stable {
+      pkgs_stable = import nixpkgs_stable {
         system = "x86_64-linux";
         config.android_sdk.accept_license = true;
       };
 
-      pkgs_unstable = import nixpkgs_stable {
+      pkgs_unstable = import nixpkgs_unstable {
         system = "x86_64-linux";
         config.android_sdk.accept_license = true;
       };
+
+      pkgs = if params.version == "unstable" then pkgs_unstable else pkgs_stable;
 
       ignore_list = [
         # not necessary to evaluate
@@ -42,25 +43,21 @@
       step = 200;
     in
     rec {
-
       #
       # API
       #
 
-      getHomeManagerOptions =
-        home-manager.packages.x86_64-linux.docs-json.text;
-
       # divide and conquer for `findSuperPackagesPath`
       getSuperPackagesPath =
         let
-          start_of = getAttr params.start_of pkgs_unstable;
+          attr_path = getAttr params.attr_path pkgs;
         in
-        pipe start_of [
+        pipe attr_path [
           #(x: (debug.traceVal x))
           (mapAttrsToList nameValuePair)
           (lists.sublist (params.start * step) step)
           listToAttrs
-          (x: findSuperPackagesPath x (params.start_of))
+          (x: findSuperPackagesPath x (params.attr_path))
           lists.flatten
           toJSON
         ];
@@ -68,13 +65,13 @@
       # divide and conquer for `findPackagesMeta`
       getPackagesMeta =
         let
-          start_of = getAttr params.start_of pkgs_unstable;
+          attr_path = getAttr params.attr_path pkgs;
         in
-        pipe start_of [
+        pipe attr_path [
           (mapAttrsToList nameValuePair)
           (lists.sublist (params.start * step) step)
           listToAttrs
-          (x: findPackagesMeta x (params.start_of))
+          (x: findPackagesMeta x (params.attr_path))
           lists.flatten
           toJSON
         ];
@@ -97,7 +94,7 @@
           (foldl'
             (acc: x: (catAttrs x acc))
             [ attr ] # current pkg node
-            list # start_of list
+            list # attr_path list
           );
 
       # GENERIC FUNCTION

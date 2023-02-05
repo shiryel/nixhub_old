@@ -251,8 +251,6 @@ defmodule CoreWeb.CoreComponents do
     <a
       class={[
         "phx-submit-loading:opacity-75 rounded-lg",
-        "bg-zinc-100 dark:bg-zinc-900 hover:bg-zinc-300 dark:hover:bg-zinc-700",
-        "text-sm leading-6",
         @class
       ]}
       {@rest}

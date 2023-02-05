@@ -7,7 +7,7 @@
 @layer components {
   .code {
     @apply font-code px-[0.2em] py-[0.05em] border-[0.05em] rounded-sm;
-    @apply bg-slate-100 border-slate-300;
+    @apply bg-bg/50 border-bg_focus/50;
     @apply dark:bg-slate-800 dark:border-slate-900;
   }
 

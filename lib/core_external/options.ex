@@ -6,8 +6,9 @@ defmodule CoreExternal.Options do
   alias Core.Nix.Option
   alias CoreExternal.{Meilisearch, Utils}
 
-  def load_nixos do
-    File.read!("tmp/nixos_options.json")
+  def load_nixos(index_name, version) do
+    (System.tmp_dir!() <> "/results/nixos_#{version}/share/doc/nixos/options.json")
+    |> File.read!()
     |> Jason.decode!()
     |> Enum.map(fn {k, v} ->
       option =
@@ -18,19 +19,19 @@ defmodule CoreExternal.Options do
       |> Ecto.Changeset.apply_action!(:insert)
     end)
     |> List.flatten()
-    |> Meilisearch.upsert_packages()
+    |> Meilisearch.upsert_packages(index_name)
   end
 
-  def load_home_manager do
-    System.shell("nix eval --raw ./eval#getHomeManagerOptions")
-    |> elem(0)
+  def load_home_manager(index_name, version) do
+    (System.tmp_dir!() <> "/results/home_manager_#{version}/share/doc/home-manager/options.json")
+    |> File.read!()
     |> Jason.decode!()
     |> Enum.map(fn {k, v} ->
       Map.put(v, "name", k)
       |> normalize_home_manager()
     end)
     |> List.flatten()
-    |> Meilisearch.upsert_packages()
+    |> Meilisearch.upsert_packages(index_name)
   end
 
   defp normalize_home_manager(map) do
@@ -47,9 +48,6 @@ defmodule CoreExternal.Options do
         end)
         |> then(&{"declarations", &1})
 
-      {"description", %{"_type" => _type, "text" => text}} ->
-        {"description", text}
-
       option ->
         option
     end)
@@ -63,20 +61,26 @@ defmodule CoreExternal.Options do
     |> Ecto.Changeset.apply_action!(:insert)
   end
 
+  @is_nix_code ["example", "default"]
+
   defp normalize_option(option) do
     option
     |> Utils.normalize_map()
     |> Enum.map(fn
-      {_any, %{"_type" => "literalExpression", "text" => _text}} = option ->
+      {key, %{"_type" => "literalExpression", "text" => _text}} = option
+      when key in @is_nix_code ->
         # Maybe format with nixpkgs-fmt ?
         option
 
-      {key, text} when key in ["example", "default"] ->
+      {key, text} when key in @is_nix_code ->
         {key,
          %{
            "_type" => nil,
            "text" => Jason.encode!(text) |> Jason.Formatter.pretty_print()
          }}
+
+      {"description", %{"_type" => _type, "text" => text}} ->
+        {"description", text}
 
       option ->
         option

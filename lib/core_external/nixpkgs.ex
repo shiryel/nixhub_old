@@ -3,6 +3,12 @@ defmodule CoreExternal.Nixpkgs do
     Loads nixpkgs on Meilisearch in batches
   """
 
+  defstruct index_name: "packages_stable",
+            version: "stable",
+            start: 0,
+            attr_path: ["pkgs"],
+            empty_stage: 0
+
   require Logger
 
   alias Core.Nix.Package
@@ -15,73 +21,103 @@ defmodule CoreExternal.Nixpkgs do
   # LOADER #
   ##########
 
-  def load_all(start \\ 0, start_of \\ ["pkgs"], empty_stage \\ 0)
-
-  def load_all(start, start_of, 10) do
+  def load_all(%__MODULE__{
+        index_name: index_name,
+        start: start,
+        attr_path: attr_path,
+        empty_stage: 10
+      }) do
     Logger.info("""
       Finished loading packages
-      Last stage: #{start} | Path: #{inspect(start_of)}
+      INDEX NAME: #{index_name}
+      Last stage: #{start} | Path: #{inspect(attr_path)}
     """)
 
     :ok
   end
 
-  def load_all(start, start_of, empty_stage) do
+  def load_all(%__MODULE__{} = config) do
     # Avoid deep packages to avoid infinite recursions
-    if length(start_of) > 3 do
+    if length(config.attr_path) > 3 do
       :ok
     else
-      case get_super_packages_path(start, start_of) do
+      case get_super_packages_path(config) do
         [] ->
-          load_all(start + 1, start_of, empty_stage + 1)
+          load_all(%{
+            config
+            | start: config.start + 1,
+              empty_stage: config.empty_stage + 1
+          })
 
         new_packages ->
           new_packages
           |> List.flatten()
-          |> Meilisearch.upsert_packages()
+          |> Meilisearch.upsert_packages(config.index_name)
 
-          load_all(start + 1, start_of)
+          load_all(%{
+            config
+            | start: config.start + 1
+          })
       end
     end
+
+    # Avoids the usage of a incomplete index
+    # by deleting the index itself
+  rescue
+    _ ->
+      Meilisearch.delete_index(config.index_name)
+      :ok
   end
 
-  defp get_super_packages_path(start, start_of) do
-    Logger.info("Getting packages - Stage: #{start} | Path: #{inspect(start_of)}")
-    load_params(start, start_of)
+  defp get_super_packages_path(config) do
+    #Logger.info("Getting packages - Stage: #{config.start} | Path: #{inspect(config.attr_path)}")
+    load_params(config)
 
-    System.shell("nix eval --raw ./eval#getSuperPackagesPath")
+    nix_eval = Application.app_dir(:core, "priv/nix_eval")
+
+    System.shell(
+      "nix --experimental-features 'nix-command flakes' eval --raw path:#{nix_eval}#getSuperPackagesPath"
+    )
     |> elem(0)
     |> Jason.decode()
     |> case do
       {:ok, []} ->
-        get_packages_meta(start, start_of)
+        get_packages_meta(config)
 
       {:ok, r} ->
         # Load children
         Enum.each(r, fn %{"r" => path} ->
-          load_all(0, path)
+          load_all(%{config | start: 0, attr_path: path})
         end)
 
-        get_packages_meta(start, start_of)
+        get_packages_meta(config)
     end
   end
 
-  defp get_packages_meta(start, start_of) do
-    load_params(start, start_of)
+  defp get_packages_meta(config) do
+    load_params(config)
 
-    System.shell("nix eval --raw ./eval#getPackagesMeta")
+    nix_eval = Application.app_dir(:core, "priv/nix_eval")
+
+    System.shell(
+      "nix --experimental-features 'nix-command flakes' eval --raw path:#{nix_eval}#getPackagesMeta"
+    )
     |> elem(0)
     |> decode()
   end
 
-  defp load_params(start, start_of) do
-    start_of =
-      Enum.reduce(start_of, "[", fn
+  defp load_params(%{version: version, start: start, attr_path: attr_path}) do
+    attr_path =
+      Enum.reduce(attr_path, "[", fn
         x, acc ->
           acc <> ~s| "| <> x <> ~s|" |
       end) <> "]"
 
-    System.shell("echo '{ start = #{start}; start_of = #{start_of}; }' > eval/params.nix")
+    nix_eval = Application.app_dir(:core, "priv/nix_eval")
+
+    System.shell(
+      ~s|echo '{  version = "#{version}"; start = #{start}; attr_path = #{attr_path}; }' > #{nix_eval}/params.nix|
+    )
   end
 
   ##########

@@ -93,9 +93,7 @@ defmodule Core.Nix.Option do
   defp description(changeset), do: changeset
 
   defp parse_docbook_to_html(description) do
-    unless File.dir?("tmp/"), do: File.mkdir("tmp")
-
-    file = "tmp/#{:rand.bytes(32) |> Base.url_encode64()}"
+    file = "#{System.tmp_dir!()}/#{:rand.bytes(32) |> Base.url_encode64()}"
     File.write(file, "<para>" <> description <> "</para>")
 
     result =

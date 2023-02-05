@@ -1,3 +1,14 @@
+run:
+	docker build . -t nixhub:latest
+	docker run -it \
+		-e SECRET_KEY_BASE=Lw5zSbIJmCnGpbHXToGZokE49q38Q/eeA12b3XTCr1PdisXA7b7YpS2WAuUXY4D0 \
+		-e MEILISEARCH_URL=http://localhost:7700 \
+		-e ADMIN_USERNAME=admin \
+		-e ADMIN_PASSWORD=admin \
+		-e PHX_HOST=localhost \
+		--network host \
+		nixhub:latest
+
 ci:
 	mix compile --warnings-as-errors
 	mix credo --strict
