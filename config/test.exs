@@ -1,5 +1,11 @@
 import Config
 
+config :core, :nixpkgs, adapter: CoreExternal.Nixpkgs.AdapterMock
+config :core, :meilisearch, adapter: CoreExternal.Meilisearch.AdapterMock
+
+config :core,
+  meilisearch_url: System.get_env("MEILISEARCH_URL", "http://localhost:7700")
+
 # Configure your database
 #
 # The MIX_TEST_PARTITION environment variable can be used

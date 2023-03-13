@@ -1,0 +1,47 @@
+diff --git a/src/nix-eval-jobs.cc b/src/nix-eval-jobs.cc
+index 7b22fc4..cd46537 100644
+--- a/src/nix-eval-jobs.cc
++++ b/src/nix-eval-jobs.cc
+@@ -315,23 +315,27 @@ static void worker(ref<EvalState> state, Bindings &autoArgs, AutoCloseFD &to,
+                     }
+                 } else {
+                     auto attrs = nlohmann::json::array();
+-                    bool recurse =
+-                        myArgs.forceRecurse ||
+-                        path.size() == 0; // Dont require `recurseForDerivations
+-                                          // = true;` for top-level attrset
+-
+-                    for (auto &i :
+-                         v->attrs->lexicographicOrder(state->symbols)) {
+-                        const std::string &name = state->symbols[i->name];
+-                        attrs.push_back(name);
+-
+-                        if (name == "recurseForDerivations") {
+-                            auto attrv =
+-                                v->attrs->get(state->sRecurseForDerivations);
+-                            recurse =
+-                                state->forceBool(*attrv->value, attrv->pos);
++                    bool recurse = true;
++
++                    // lookahead
++                    for (auto &i : v->attrs->lexicographicOrder(state->symbols)) {
++                      const std::string &name = state->symbols[i->name];
++                      attrs.push_back(name);
++
++                      if (path[0] == "nixosTests" || path[0] == "vmTools" ||
++                          path.size() > 4)
++                        recurse = false;
++
++                      // don't recurse if any key is in the path
++                      // to avoid infinity recursion
++                      for (auto p : path) {
++                        if (name == p) {
++                          recurse = false;
++                          break;
+                         }
++                      }
+                     }
++
+                     if (recurse)
+                         reply["attrs"] = std::move(attrs);
+                     else

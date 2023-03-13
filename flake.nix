@@ -20,6 +20,12 @@
           system = system;
         };
 
+        my-nix-eval-jobs = (pkgs_unstable.nix-eval-jobs.overrideAttrs (old: rec {
+          patches = [
+            ./priv/nix/nix_eval_jobs.patch
+          ];
+        }));
+
         packages = with pkgs_unstable; [
           elixir_1_14
           openssl
@@ -28,23 +34,18 @@
           gnused
           git
           pandoc
-
-          # Nix
-          (nix.overrideAttrs (old: rec {
-            doInstallCheck = false;
-            patches = old.patches ++ [
-              # FIXES:
-              # - https://github.com/NixOS/nix/pull/5564
-              # - https://github.com/NixOS/nixpkgs/issues/31884
-              # - https://github.com/NixOS/nixpkgs/issues/107539
-              ./priv/nix_eval/tryEval.patch
-            ];
-          }))
+          my-nix-eval-jobs
+          nix
         ];
       in
-      rec {
+      {
         devShell = pkgs.mkShell {
           packages = packages;
+        };
+
+        packages.nixhub-deps = pkgs.symlinkJoin {
+          name = "nixhub-deps";
+          paths = packages;
         };
       }
     );

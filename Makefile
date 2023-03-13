@@ -7,7 +7,8 @@ run:
 		-e ADMIN_PASSWORD=admin \
 		-e PHX_HOST=localhost \
 		--network host \
-		nixhub:latest
+		nixhub:latest \
+		sh -c "PHX_SERVER=true bin/core start_iex"
 
 ci:
 	mix compile --warnings-as-errors
@@ -15,6 +16,15 @@ ci:
 	mix format
 	mix test
 	mix dialyzer
+
+update_fixtures:
+	nix flake update path:priv/nix_eval
+	nix-eval-jobs --meta --quiet --check-cache-status --workers 4 --flake path:priv/nix_eval#get > packages.json 2> errors.log
+	tail packages.json > test/support/fixtures/packages.json
+	cat packages.json | grep '\["elixir"\]' > test/support/fixtures/package.json
+	sed -i.original '/,"error":"error:\ /d' packages.json
+	sed '/"isCached":false/d' packages.json > packages_sorted.json
+	sed '/"isCached":true/d' packages.json >> packages_sorted.json
 
 nixpkgs_options:
 	mkdir -p tmp/
@@ -29,3 +39,6 @@ nix_builtins:
 
 meilisearch_tasks:
 	curl -X GET 'http://localhost:7700/tasks'
+
+meilisearch_run:
+	docker run -d --name meilisearch -p 7700:7700 -v $(pwd)/meili_data:/meili_data getmeili/meilisearch meilisearch --env="development" --no-analytics

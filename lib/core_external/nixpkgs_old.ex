@@ -1,4 +1,4 @@
-defmodule CoreExternal.Nixpkgs do
+defmodule CoreExternal.NixpkgsOld do
   @moduledoc """
     Loads nixpkgs on Meilisearch in batches
   """
@@ -70,7 +70,7 @@ defmodule CoreExternal.Nixpkgs do
   end
 
   defp get_super_packages_path(config) do
-    #Logger.info("Getting packages - Stage: #{config.start} | Path: #{inspect(config.attr_path)}")
+    # Logger.info("Getting packages - Stage: #{config.start} | Path: #{inspect(config.attr_path)}")
     load_params(config)
 
     nix_eval = Application.app_dir(:core, "priv/nix_eval")
@@ -116,7 +116,7 @@ defmodule CoreExternal.Nixpkgs do
     nix_eval = Application.app_dir(:core, "priv/nix_eval")
 
     System.shell(
-      ~s|echo '{  version = "#{version}"; start = #{start}; attr_path = #{attr_path}; }' > #{nix_eval}/params.nix|
+      ~s|echo '{  version = "#{version}"; offset = #{start}; size = 200; attr_path = #{attr_path}; }' > #{nix_eval}/params.nix|
     )
   end
 
@@ -154,7 +154,11 @@ defmodule CoreExternal.Nixpkgs do
         end)
 
       {:error, error} ->
-        Logger.warn(inspect(error))
+        Logger.error("""
+          ERROR: #{inspect(error)}
+          JSON: #{inspect(json)}
+        """)
+
         []
     end
   end

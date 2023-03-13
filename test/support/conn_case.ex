@@ -28,6 +28,9 @@ defmodule CoreWeb.ConnCase do
       import Plug.Conn
       import Phoenix.ConnTest
       import CoreWeb.ConnCase
+      import Mox
+
+      setup :verify_on_exit!
     end
   end
 

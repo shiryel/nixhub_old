@@ -9,3 +9,13 @@
 #
 # We recommend using the bang functions (`insert!`, `update!`
 # and so on) as they will fail if something goes wrong.
+
+import Core.Repo
+
+alias Core.Nix.Package.Version
+
+insert(%Version{
+  name: "unstable",
+  repo: "github:NixOS/nixpkgs",
+  branch: "nixos-unstable"
+})

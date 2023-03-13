@@ -11,7 +11,8 @@ defmodule Core.Nix.Schema do
       @type t :: %unquote(__CALLER__.module){}
 
       @derive Jason.Encoder
-      @primary_key {:id, :string, autogenerate: false}
+      @primary_key {:id, :binary_id, autogenerate: true}
+      @foreign_key_type :binary_id
     end
   end
 end

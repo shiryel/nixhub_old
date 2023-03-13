@@ -1,26 +1,31 @@
-defmodule Core.Nix.Package.Maintainer do
+defmodule Core.Nix.Derivation.Maintainer do
   @moduledoc false
 
   use Core.Nix.Schema
 
   @required [
-    :email,
-    :name
+    :name,
+    :github_id
   ]
 
   @optional [
     :github,
-    :github_id,
+    :email,
     :matrix
   ]
 
-  @primary_key false
-  embedded_schema do
+  @primary_key {:github_id, :integer, autogenerate: false}
+  schema "maintainers" do
     field :email, :string
     field :github, :string
-    field :github_id, :integer
     field :name, :string
     field :matrix, :string
+
+    many_to_many :derivations, Core.Nix.Derivation,
+      join_through: "derivations_maintainers",
+      join_keys: [license_id: :github_id, derivation_id: :drv_path]
+
+    timestamps()
   end
 
   @doc false

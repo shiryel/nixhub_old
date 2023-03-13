@@ -5,7 +5,7 @@ defmodule Core.MixProject do
     [
       app: :core,
       version: "0.1.0",
-      elixir: "~> 1.13",
+      elixir: "~> 1.14",
       elixirc_paths: elixirc_paths(Mix.env()),
       start_permanent: Mix.env() == :prod,
       aliases: aliases(),
@@ -51,12 +51,14 @@ defmodule Core.MixProject do
       {:gettext, "~> 0.20"},
       {:jason, "~> 1.2"},
       {:plug_cowboy, "~> 2.5"},
-      {:tesla, "~> 1.4.0"},
+      {:tesla, "~> 1.5.0"},
       {:hackney, "~> 1.10"},
       {:quantum, "~> 3.5"},
       # Tests
       {:credo, "~> 1.6", only: [:dev, :test], runtime: false},
-      {:dialyxir, "~> 1.0", only: [:dev], runtime: false}
+      {:dialyxir, "~> 1.0", only: [:dev], runtime: false},
+      {:mox, "~> 1.0", only: :test},
+      {:ex_machina, "~> 2.7.0"}
     ]
   end
 
@@ -68,10 +70,18 @@ defmodule Core.MixProject do
   # See the documentation for `Mix` for more info on aliases.
   defp aliases do
     [
-      # setup: ["deps.get", "ecto.setup"],
-      # "ecto.setup": ["ecto.create", "ecto.migrate", "run priv/repo/seeds.exs"],
-      # "ecto.reset": ["ecto.drop", "ecto.setup"],
-      # test: ["ecto.create --quiet", "ecto.migrate --quiet", "test"],
+      setup: ["deps.get", "ecto.setup"],
+      "ecto.setup": [
+        "ecto.create",
+        "ecto.migrate"
+        | if Mix.env() != :test do
+            ["run priv/repo/seeds.exs"]
+          else
+            []
+          end
+      ],
+      "ecto.reset": ["ecto.drop", "ecto.setup"],
+      test: ["ecto.create --quiet", "ecto.migrate --quiet", "test"],
       "assets.deploy": ["tailwind default --minify", "esbuild default --minify", "phx.digest"]
     ]
   end

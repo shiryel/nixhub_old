@@ -1,5 +1,8 @@
 import Config
 
+# to avoid unecessary errors
+config :core, :nixpkgs, size: 1
+
 # For production, don't forget to configure the url host
 # to something meaningful, Phoenix uses this information
 # when generating URLs.

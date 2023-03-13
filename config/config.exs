@@ -7,6 +7,9 @@
 # General application configuration
 import Config
 
+config :core, :nixpkgs, adapter: CoreExternal.Nixpkgs.Adapter
+config :core, :meilisearch, adapter: CoreExternal.Meilisearch.Adapter
+
 config :core,
   ecto_repos: [Core.Repo]
 
@@ -23,7 +26,7 @@ config :core, CoreWeb.Endpoint,
 config :core, Core.Scheduler,
   timeout: :infinity,
   jobs: [
-    {"0 5 * * *", {Core.Nix, :load_all, []}}
+    {"0 8 * * 1,4", {Core.Nix, :load_options, []}}
   ]
 
 # Configures the mailer

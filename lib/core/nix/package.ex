@@ -4,100 +4,68 @@ defmodule Core.Nix.Package do
   use Core.Nix.Schema
 
   @required [
-    :id,
-    :loc,
-    :loc_lenght,
-    :version,
-    :platforms
-  ]
-
-  @optional [
-    :description,
+    :attr,
+    :attr_path,
     :name,
-    :long_description,
-    :packages,
-    :outputs_to_install,
-    :homepage,
-    :available,
-    :broken,
-    :insecure,
-    :unfree,
-    :unsupported,
     :position
   ]
 
-  embedded_schema do
-    field :__type__, :string, default: "package"
-    field :loc, {:array, :string}
-    field :loc_lenght, :integer
-    field :version, :string
-    field :available, :boolean
-    field :broken, :boolean
-    field :description, :string
-    field :long_description, :string
-    field :homepage, {:array, :string}
-    field :insecure, :boolean
-    field :name, :string
-    field :outputs_to_install, {:array, :string}
-    field :packages, :string
-    field :platforms, {:array, :string}
-    field :position, :string
-    field :unfree, :boolean
-    field :unsupported, :boolean
+  @optional [
+    # required to load the association when creating from attr
+    :version_id
+  ]
 
-    embeds_many :licenses, __MODULE__.License
-    embeds_many :maintainers, __MODULE__.Maintainer
+  schema "packages" do
+    field :name, :string
+    field :position, :string
+    field :attr, :string
+    field :attr_path, {:array, :string}
+    field :attr_aliases, {:array, :string}, default: []
+
+    belongs_to :version, Core.Nix.Version
+    belongs_to :derivation, Core.Nix.Derivation, references: :drv_path, type: :string
+
+    timestamps()
   end
 
   @doc false
   def changeset(%__MODULE__{} = package, attrs) do
     package
     |> cast(attrs, @required ++ @optional)
-    |> cast_embed(:licenses)
-    |> cast_embed(:maintainers)
     |> validate_required(@required)
   end
 
   def create_changeset(%__MODULE__{} = package, attrs) do
     package
     |> cast(attrs, @required ++ @optional)
-    |> id()
-    |> loc_lenght()
+    |> cast_assoc(:version)
+    |> cast_assoc(:derivation)
     |> position()
-    |> cast_embed(:licenses)
-    |> cast_embed(:maintainers)
     |> validate_required(@required)
+
+    # |> unique_constraint([:name, :position])
   end
 
-  # ID
+  # ATTR PATH LENGHT
 
-  defp id(%{valid?: true, changes: %{loc: loc}} = changeset) do
-    id =
-      ["package" | loc]
-      |> Enum.join("___")
-      # Meilisearch does not accepts dots
-      # |> String.replace(".", "_")
-      |> String.replace(~r|[^0-9a-zA-Z_-]|, "_")
+  # defp attr_path_lenght(%{valid?: true, changes: %{attr_path: attr_path}} = changeset) do
+  #  put_change(changeset, :attr_path_lenght, length(attr_path))
+  # end
 
-    put_change(changeset, :id, id)
-  end
-
-  defp id(changeset), do: changeset
-
-  # LOC LENGHT
-
-  defp loc_lenght(%{valid?: true, changes: %{loc: loc}} = changeset) do
-    put_change(changeset, :loc_lenght, length(loc))
-  end
-
-  defp loc_lenght(changeset), do: changeset
+  # defp attr_path_lenght(changeset), do: changeset
 
   # POSITION
 
   defp position(%{valid?: true, changes: %{position: p}} = changeset)
        when is_binary(p) do
-    [_, raw_p] = String.split(p, "-source/", parts: 2)
-    position = String.replace(raw_p, ":", "#L")
+    position =
+      case String.split(p, "-source/", parts: 2) do
+        [_, raw_p] ->
+          String.replace(raw_p, ":", "#L")
+
+        _ ->
+          p
+      end
 
     put_change(changeset, :position, position)
   end

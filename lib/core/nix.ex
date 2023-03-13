@@ -1,73 +1,106 @@
 defmodule Core.Nix do
   @moduledoc """
-    Nix context
+    Nix Context
   """
 
-  alias CoreExternal.{Meilisearch, Nixpkgs, Options}
-  alias Core.Nix.{Option, Package}
+  import Ecto.Query, warn: false
 
   require Logger
 
+  alias Core.Repo
+  alias Ecto.Multi
+
+  alias Core.Nix.{Option, Package, Version}
+  alias CoreExternal.Meilisearch
+
   def list_versions do
-    # the first one is the default on the search
-    [
-      "22.11",
-      "unstable"
-    ]
+    from(v in Version)
+    |> Repo.all()
   end
 
-  ##############
-  # LOAD INDEX #
-  ##############
+  ###########
+  # NIXPKGS #
+  ###########
 
-  # TODO: update flake when loading
-  @doc """
-    Load all indexes, stable and unstable
-  """
-  def load_all do
-    # Load nix sources
-    script = Application.app_dir(:core, "priv/nix_eval/nix_sources.sh")
-    tmp = System.tmp_dir!()
-    System.shell("#{script} #{tmp}")
+  def count_packages do
+    from(p in Package, select: count())
+    |> Repo.one()
+  end
 
-    load("nixos_options", &Options.load_nixos/2)
-    load("home_manager_options", &Options.load_home_manager/2)
-
-    load("packages", fn index_name, version ->
-      Nixpkgs.load_all(%Nixpkgs{index_name: index_name, version: version})
+  # NOTE: this code expects that packages with `is_cached: true` will
+  #       be stored first than their variations
+  def upsert_package(attrs \\ %{}) do
+    Multi.new()
+    |> Multi.run(:params, fn _, _ -> {:ok, attrs} end)
+    |> Multi.run(:package_changeset, fn _, _ ->
+      {:ok, Package.create_changeset(%Package{}, attrs)}
     end)
-
-    :ok
+    |> Multi.run(:maybe_get_package, &maybe_get_package/2)
+    |> Multi.run(:maybe_upsert_package, &maybe_upsert_package/2)
+    |> Repo.transaction()
   end
 
-  defp load(name, fun) do
-    list_versions()
-    |> Enum.each(&load(name, &1, fun))
+  defp maybe_get_package(_repo, %{package_changeset: %{valid?: true, changes: c}}) do
+    Repo.get_by(Package,
+      name: c.name,
+      position: c.position,
+      version_id: c.version_id
+    )
+    |> Repo.preload(derivation: [:licenses, :maintainers])
+    |> then(&{:ok, &1})
   end
 
-  defp load(name, version, fun) do
-    index = "#{name}-#{version}"
+  defp maybe_get_package(_repo, %{package_changeset: changeset}) do
+    Logger.error("""
+      Invalid changeset:
+      #{inspect(changeset, pretty: true)}
+    """)
 
-    Logger.info("Loading index: #{index}")
+    {:error, :invalid_changeset}
+  end
 
-    if index_exists?(index) do
-      new_index = "#{index}-new"
+  # insert package
+  defp maybe_upsert_package(_repo, %{
+         package_changeset: changeset,
+         maybe_get_package: nil
+       }) do
+    Repo.insert(changeset)
+  end
 
-      Meilisearch.delete_index(new_index)
-      Meilisearch.configure(new_index)
-      fun.(new_index, version)
-      Meilisearch.index_swap(new_index, index)
-    else
-      Meilisearch.configure(index)
-      fun.(index, version)
+  # update package
+  defp maybe_upsert_package(_repo, %{
+         params: params,
+         package_changeset: %{changes: %{attr: new_attr}},
+         maybe_get_package:
+           %Package{
+             attr: old_attr,
+             attr_path: old_attr_path,
+             attr_aliases: attr_aliases
+           } = package
+       }) do
+    cond do
+      new_attr == old_attr ->
+        Package.create_changeset(package, params)
+        |> Repo.update(force: true)
+
+      String.length(new_attr) > String.length(old_attr) ->
+        new_aliases = [new_attr | attr_aliases] |> Enum.uniq()
+
+        Package.create_changeset(package, params)
+        |> Ecto.Changeset.change(%{
+          attr: old_attr,
+          attr_path: old_attr_path,
+          attr_aliases: new_aliases
+        })
+        |> Repo.update(force: true)
+
+      true ->
+        new_aliases = [old_attr | attr_aliases] |> Enum.uniq()
+
+        Package.create_changeset(package, params)
+        |> Ecto.Changeset.change(%{attr_aliases: new_aliases})
+        |> Repo.update(force: true)
     end
-
-    Logger.info("Finished loading index: #{index}")
-  end
-
-  defp index_exists?(name) do
-    Meilisearch.list_indexes()
-    |> Enum.any?(&(&1 == name))
   end
 
   ################

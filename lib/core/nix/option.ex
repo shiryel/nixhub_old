@@ -20,6 +20,7 @@ defmodule Core.Nix.Option do
     :description
   ]
 
+  @primary_key {:id, :string, autogenerate: false}
   embedded_schema do
     field :__type__, :string
     field :name, :string

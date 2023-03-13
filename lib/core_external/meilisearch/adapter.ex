@@ -1,11 +1,11 @@
-defmodule CoreExternal.Meilisearch do
+defmodule CoreExternal.Meilisearch.Adapter do
   @moduledoc """
-    Meilisearch API
+    Meilisearch API Impl
   """
 
   require Logger
 
-  @type return :: {:ok, any() | {:error, any()}}
+  @behaviour CoreExternal.Meilisearch
 
   defp client do
     Tesla.client([
@@ -14,7 +14,6 @@ defmodule CoreExternal.Meilisearch do
     ])
   end
 
-  @spec configure(String.t()) :: return()
   def configure(index_id) do
     client = client()
     uid = normalize(index_id)
@@ -32,8 +31,8 @@ defmodule CoreExternal.Meilisearch do
     Tesla.put(client, "/indexes/#{uid}/settings/ranking-rules", [
       "words",
       "typo",
-      "loc_lenght:asc",
       "proximity",
+      "loc_lenght:asc",
       "attribute",
       "sort",
       "exactness"
@@ -50,7 +49,6 @@ defmodule CoreExternal.Meilisearch do
     |> results()
   end
 
-  @spec list_indexes() :: [uid :: String.t()]
   def list_indexes do
     client()
     |> Tesla.get("/indexes")
@@ -64,7 +62,6 @@ defmodule CoreExternal.Meilisearch do
     end
   end
 
-  @spec delete_index(String.t()) :: return()
   def delete_index(index_id) do
     uid = normalize(index_id)
 
@@ -73,7 +70,6 @@ defmodule CoreExternal.Meilisearch do
     |> results()
   end
 
-  @spec upsert_packages([Core.Nix.Package.t()], String.t()) :: return()
   def upsert_packages(packages, index_id) do
     uid = normalize(index_id)
 
@@ -82,7 +78,6 @@ defmodule CoreExternal.Meilisearch do
     |> results()
   end
 
-  @spec index_swap(from :: String.t(), to :: String.t()) :: :ok
   def index_swap(from, to) do
     client()
     |> Tesla.post("/swap-indexes", [%{indexes: [from, to]}])
@@ -90,7 +85,6 @@ defmodule CoreExternal.Meilisearch do
     :ok
   end
 
-  @spec search(String.t(), map()) :: return()
   def search(index_id, body) do
     uid = normalize(index_id)
 

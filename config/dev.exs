@@ -1,5 +1,7 @@
 import Config
 
+config :core, :nixpkgs, adapter: CoreExternal.Nixpkgs.AdapterLocalCache
+
 config :core,
   meilisearch_url: System.get_env("MEILISEARCH_URL", "http://localhost:7700")
 

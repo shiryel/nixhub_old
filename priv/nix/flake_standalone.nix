@@ -13,14 +13,24 @@
     let
       params = import ./params.nix;
 
+      config = {
+        android_sdk.accept_license = true;
+        allowUnfree = true;
+        allowBroken = true;
+        allowUnsupportedSystem = true;
+        permittedInsecurePackages = true;
+        input-fonts.acceptLicense = true;
+        joypixels.acceptLicense = true;
+      };
+
       pkgs_stable = import nixpkgs_stable {
         system = "x86_64-linux";
-        config.android_sdk.accept_license = true;
+        config = config;
       };
 
       pkgs_unstable = import nixpkgs_unstable {
         system = "x86_64-linux";
-        config.android_sdk.accept_license = true;
+        config = config;
       };
 
       pkgs = if params.version == "unstable" then pkgs_unstable else pkgs_stable;
@@ -40,12 +50,15 @@
 
       # how much packages per batch
       # can cause stack overflows!
-      step = 200;
+      offset = params.offset;
+      size = params.size;
     in
     rec {
       #
       # API
       #
+
+      get_pkgs = pkgs_unstable;
 
       # divide and conquer for `findSuperPackagesPath`
       getSuperPackagesPath =
@@ -55,7 +68,7 @@
         pipe attr_path [
           #(x: (debug.traceVal x))
           (mapAttrsToList nameValuePair)
-          (lists.sublist (params.start * step) step)
+          (lists.sublist (offset * size) size)
           listToAttrs
           (x: findSuperPackagesPath x (params.attr_path))
           lists.flatten
@@ -69,7 +82,7 @@
         in
         pipe attr_path [
           (mapAttrsToList nameValuePair)
-          (lists.sublist (params.start * step) step)
+          (lists.sublist (offset * size) size)
           listToAttrs
           (x: findPackagesMeta x (params.attr_path))
           lists.flatten
@@ -183,7 +196,7 @@
           (attr: [ ])
           # fn_else
           (name: value:
-            if (attrCount value) > step then
+            if (attrCount value) > size then
               { r = acc ++ [ name ]; }
             else
               pipe value [
@@ -223,7 +236,7 @@
           )
           # fn_else
           (name: value:
-            if (attrCount value) > step then
+            if (attrCount value) > size then
               [ ]
             else
               pipe value [

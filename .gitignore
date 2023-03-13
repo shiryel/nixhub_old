@@ -35,4 +35,6 @@ npm-debug.log
 # Nix generated files
 /tmp
 
-priv/nix_eval/params.nix
+/errors.log
+/packages.json
+/packages.json.old

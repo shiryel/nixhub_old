@@ -1,9 +1,11 @@
-defmodule Core.Nix.Package.License do
+defmodule Core.Nix.Derivation.License do
   @moduledoc false
 
   use Core.Nix.Schema
 
-  @required []
+  @required [
+    :spdx_id
+  ]
 
   @optional [
     :deprecated,
@@ -11,19 +13,23 @@ defmodule Core.Nix.Package.License do
     :redistributable,
     :full_name,
     :short_name,
-    :spdx_id,
     :url
   ]
 
-  @primary_key false
-  embedded_schema do
+  @primary_key {:spdx_id, :string, autogenerate: false}
+  schema "licenses" do
     field :deprecated, :boolean
     field :free, :boolean
     field :full_name, :string
     field :redistributable, :boolean
     field :short_name, :string
-    field :spdx_id, :string
     field :url, :string
+
+    many_to_many :packages, Core.Nix.Package,
+      join_through: "derivations_licenses",
+      join_keys: [license_id: :spdx_id, package_id: :drv_path]
+
+    timestamps()
   end
 
   @doc false

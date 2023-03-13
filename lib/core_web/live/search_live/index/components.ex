@@ -24,8 +24,8 @@ defmodule CoreWeb.SearchLive.Index.Components do
           ]}
           phx-click="set_version"
         >
-          <option> <%= @version %> </option>
-          <option :for={v <- Core.Nix.list_versions() |> List.delete(@version)}> 
+          <option><%= @version %></option>
+          <option :for={v <- Core.Nix.list_versions() |> List.delete(@version)}>
             <%= v %>
           </option>
         </select>
@@ -171,7 +171,7 @@ defmodule CoreWeb.SearchLive.Index.Components do
   def render_result(assigns) do
     ~H"""
     <.button
-      phx-click={JS.dispatch("copy_to_clipboard", detail: @r.name)}
+      phx-click={JS.dispatch("copy_to_clipboard", detail: @r.attr)}
       class="bg-transparent hover:bg-bg rounded-lg"
     >
       <Heroicons.clipboard_document class="icon mx-1.5" />
@@ -184,7 +184,7 @@ defmodule CoreWeb.SearchLive.Index.Components do
         "underline underline-offset-4 decoration-1 decoration-cyan/40"
       ]}
     >
-      <%= @r.name %>
+      <%= @r.attr %>
     </a>
     <span :if={@type == "packages" and @r.unfree} class="ml-1 px-1 rounded-md bg-red/70">
       unfree
